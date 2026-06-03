@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deal Pipeline — Summit Capital Partners III</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── Deal Card ── */
+    .deal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      transition: box-shadow 0.15s;
+    }
+    .deal-card:hover { box-shadow: var(--shadow-md); }
+
+    .deal-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .deal-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .deal-sector-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text2);
+    }
+    .sector-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .deal-desc {
+      font-size: 0.78rem;
+      color: var(--text2);
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .deal-metrics {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .deal-metric {
+      flex: 1;
+      padding: 7px 10px;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .deal-metric:last-child { border-right: none; }
+    .deal-metric-label { font-size: 0.64rem; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .deal-metric-value { font-size: 0.8rem; font-weight: 700; color: var(--text); margin-top: 1px; }
+
+    .deal-prob-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.72rem;
+    }
+    .deal-prob-label { color: var(--text2); font-weight: 500; flex-shrink: 0; }
+    .deal-prob-bar {
+      flex: 1;
+      height: 6px;
+      background: #E2E8F0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .deal-prob-fill { height: 100%; border-radius: 3px; }
+    .deal-prob-pct { font-weight: 700; flex-shrink: 0; width: 34px; text-align: right; }
+
+    .deal-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .deal-owner {
+      font-size: 0.72rem;
+      color: var(--text3);
+    }
+
+    /* ── Stage badge colours ── */
+    .stage-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.66rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+      color: #fff;
+    }
+
+    /* ── Source badge ── */
+    .src-proprietary { background: var(--green-lt);  color: #059669; }
+    .src-banker       { background: var(--blue-lt);   color: #2563EB; }
+    .src-network      { background: #EDE9FE;          color: #7C3AED; }
+
+    /* ── Mini prob bar in table ── */
+    .tbl-prob { display: flex; flex-direction: column; gap: 3px; min-width: 80px; }
+    .tbl-prob-bar { height: 4px; background: #E2E8F0; border-radius: 2px; overflow: hidden; }
+    .tbl-prob-fill { height: 100%; border-radius: 2px; background: var(--blue); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     TOP NAV
+══════════════════════════════════════ -->
+<nav class="topnav">
+  <a href="index.html" class="nav-brand">
+    <div class="nav-brand-icon">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 17 L10 4 L18 17" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        <path d="M6 17 L10 10 L14 17" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="rgba(255,255,255,0.35)"/>
+      </svg>
+    </div>
+    <div>
+      <div class="nav-brand-name">Summit Capital</div>
+      <div class="nav-brand-sub">Partners III, L.P.</div>
+    </div>
+  </a>
+
+  <div class="nav-links">
+    <a href="index.html"     class="nav-link">Fund Overview</a>
+    <a href="portfolio.html" class="nav-link">Portfolio</a>
+    <a href="capital.html"   class="nav-link">Capital Account</a>
+    <a href="pipeline.html"  class="nav-link active">Deal Pipeline</a>
+    <a href="risk.html"      class="nav-link">Risk &amp; Concentration</a>
+  </div>
+
+  <div class="nav-right">
+    <span class="nav-badge">Active Fund</span>
+    <span class="nav-date">As of Q2 2026</span>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     PAGE
+══════════════════════════════════════ -->
+<main class="page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-title">Deal Pipeline</h1>
+    <p class="page-subtitle" id="page-subtitle"></p>
+  </div>
+
+  <!-- ── Row 1: KPI Cards ── -->
+  <div class="grid-4">
+
+    <div class="kpi-card accent-blue">
+      <div class="kpi-label">Active Deals</div>
+      <div class="kpi-value" id="kpi-active"></div>
+      <div class="kpi-sub"  id="kpi-active-sub"></div>
+    </div>
+
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">In Exclusivity</div>
+      <div class="kpi-value" id="kpi-excl"></div>
+      <div class="kpi-sub"  id="kpi-excl-sub"></div>
+    </div>
+
+    <div class="kpi-card accent-purple">
+      <div class="kpi-label">Weighted Pipeline</div>
+      <div class="kpi-value" id="kpi-weighted"></div>
+      <div class="kpi-sub">probability-weighted equity</div>
+    </div>
+
+    <div class="kpi-card accent-orange">
+      <div class="kpi-label">Avg EV/EBITDA</div>
+      <div class="kpi-value" id="kpi-evebitda"></div>
+      <div class="kpi-sub">vs 10.1x current portfolio</div>
+    </div>
+
+  </div><!-- /grid-4 -->
+
+  <!-- ── Row 2: Funnel + Sector Chart ── -->
+  <div class="grid-2 section-gap">
+
+    <!-- Panel A — Pipeline Funnel -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Pipeline Funnel</span>
+      </div>
+      <div class="card-body" id="funnel-container" style="padding-top:12px;"></div>
+    </div>
+
+    <!-- Panel B — Pipeline by Sector -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Pipeline by Sector</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap" style="height:240px;">
+          <canvas id="chartSector"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid-2 -->
+
+  <!-- ── Row 3: Deal Cards ── -->
+  <div class="grid-3 section-gap" id="deal-cards"></div>
+
+  <!-- ── Row 4: Full Pipeline Table ── -->
+  <div class="card section-gap">
+    <div class="card-header">
+      <span class="card-title">Full Pipeline</span>
+    </div>
+    <div class="card-body-flush">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Deal Name</th>
+              <th>Sector</th>
+              <th>Source</th>
+              <th>Stage</th>
+              <th class="num">Target EV ($M)</th>
+              <th class="num">Equity ($M)</th>
+              <th class="num">EV/EBITDA</th>
+              <th class="num">Probability</th>
+              <th>Owner</th>
+            </tr>
+          </thead>
+          <tbody id="pipeline-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="page-footer">
+    CONFIDENTIAL — For Demonstration Purposes Only &nbsp;·&nbsp; Summit Capital Partners III, L.P.
+  </div>
+
+</main>
+
+<script src="data.js"></script>
+<script>
+/* ── Helpers ── */
+Chart.defaults.font.family = 'Inter, -apple-system, sans-serif';
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#64748B';
+
+function stageBadgeStyle(stage) {
+  const bg = STAGE_COLORS[stage] || '#94A3B8';
+  return `background:${bg};`;
+}
+
+function sectorColor(sector) {
+  return SECTOR_COLORS[sector] || '#94A3B8';
+}
+
+function sourceCls(source) {
+  if (source === 'Proprietary') return 'src-proprietary';
+  if (source === 'Banker')      return 'src-banker';
+  return 'src-network';
+}
+
+/* ── Page Subtitle ── */
+(function() {
+  const totalEV = PIPELINE.reduce((s, d) => s + d.targetEV, 0);
+  document.getElementById('page-subtitle').textContent =
+    PIPELINE.length + ' active opportunities · $' + (totalEV / 1000).toFixed(2) + 'B total EV under review';
+})();
+
+/* ── KPI Cards ── */
+(function() {
+  const totalEV = PIPELINE.reduce((s, d) => s + d.targetEV, 0);
+  document.getElementById('kpi-active').textContent    = PIPELINE.length;
+  document.getElementById('kpi-active-sub').textContent = '$' + (totalEV / 1000).toFixed(2) + 'B total EV';
+
+  const exclDeals = PIPELINE.filter(d => d.stage === 'Exclusivity');
+  document.getElementById('kpi-excl').textContent      = exclDeals.length;
+  document.getElementById('kpi-excl-sub').textContent   = exclDeals.map(d => d.name).join(', ');
+
+  const weighted = PIPELINE.reduce((s, d) => s + d.equity * (d.probability / 100), 0);
+  document.getElementById('kpi-weighted').textContent  = '$' + Math.round(weighted) + 'M';
+
+  const avgEV = PIPELINE.reduce((s, d) => s + d.evEbitda, 0) / PIPELINE.length;
+  document.getElementById('kpi-evebitda').textContent  = avgEV.toFixed(1) + 'x';
+})();
+
+/* ── Funnel ── */
+(function() {
+  const container = document.getElementById('funnel-container');
+
+  // Aggregate EV and count by stage
+  const stageData = {};
+  PIPELINE_STAGES.forEach(s => { stageData[s] = { count: 0, totalEV: 0 }; });
+  PIPELINE.forEach(d => {
+    if (stageData[d.stage]) {
+      stageData[d.stage].count++;
+      stageData[d.stage].totalEV += d.targetEV;
+    }
+  });
+
+  const maxEV = Math.max(...PIPELINE_STAGES.map(s => stageData[s].totalEV));
+
+  PIPELINE_STAGES.forEach(stage => {
+    const { count, totalEV } = stageData[stage];
+    const widthPct = maxEV > 0 ? (totalEV / maxEV * 100).toFixed(1) : '0';
+    const color    = STAGE_COLORS[stage] || '#94A3B8';
+    const evLabel  = totalEV > 0 ? '$' + totalEV + 'M' : '';
+
+    const row = document.createElement('div');
+    row.className = 'funnel-stage';
+    row.innerHTML = `
+      <div class="funnel-label">${stage}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-fill" style="width:${widthPct}%; background:${color};">
+          ${evLabel}
+        </div>
+      </div>
+      <div class="funnel-count">${count}</div>
+    `;
+    container.appendChild(row);
+  });
+})();
+
+/* ── Chart: Pipeline by Sector (doughnut) ── */
+(function() {
+  const sectorMap = {};
+  PIPELINE.forEach(d => {
+    if (!sectorMap[d.sector]) sectorMap[d.sector] = { count: 0, totalEV: 0 };
+    sectorMap[d.sector].count++;
+    sectorMap[d.sector].totalEV += d.targetEV;
+  });
+
+  const labels = Object.keys(sectorMap);
+  const evData  = labels.map(s => sectorMap[s].totalEV);
+  const colors  = labels.map(s => sectorColor(s));
+
+  const ctx = document.getElementById('chartSector').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: evData,
+        backgroundColor: colors,
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverOffset: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          display: true,
+          position: 'right',
+          labels: {
+            boxWidth: 10,
+            padding: 12,
+            font: { size: 11 },
+            generateLabels: chart => {
+              const ds = chart.data.datasets[0];
+              return chart.data.labels.map((label, i) => ({
+                text: label + '  $' + ds.data[i] + 'M',
+                fillStyle: ds.backgroundColor[i],
+                strokeStyle: '#fff',
+                lineWidth: 2,
+                index: i,
+                hidden: false,
+              }));
+            },
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const count = sectorMap[ctx.label].count;
+              return ` ${ctx.label}: $${ctx.parsed}M (${count} deal${count > 1 ? 's' : ''})`;
+            }
+          }
+        },
+      },
+    },
+  });
+})();
+
+/* ── Deal Cards ── */
+(function() {
+  const container = document.getElementById('deal-cards');
+
+  PIPELINE.forEach(deal => {
+    const stageColor = STAGE_COLORS[deal.stage] || '#94A3B8';
+    const secColor   = sectorColor(deal.sector);
+    const srcCls     = sourceCls(deal.source);
+
+    // Probability bar fill colour: green if high, orange if mid, gray if low
+    let probColor = '#10B981';
+    if (deal.probability < 50) probColor = '#F59E0B';
+    if (deal.probability < 30) probColor = '#94A3B8';
+
+    const card = document.createElement('div');
+    card.className = 'deal-card';
+    card.innerHTML = `
+      <div class="deal-card-top">
+        <div>
+          <div class="deal-name">${deal.name}</div>
+          <div class="deal-sector-chip" style="margin-top:4px;">
+            <span class="sector-dot" style="background:${secColor};"></span>
+            ${deal.sector}
+          </div>
+        </div>
+        <span class="stage-badge" style="${stageBadgeStyle(deal.stage)}">${deal.stage}</span>
+      </div>
+
+      <div class="deal-desc">${deal.description}</div>
+
+      <div class="deal-metrics">
+        <div class="deal-metric">
+          <div class="deal-metric-label">Target EV</div>
+          <div class="deal-metric-value">$${deal.targetEV}M</div>
+        </div>
+        <div class="deal-metric">
+          <div class="deal-metric-label">EV/EBITDA</div>
+          <div class="deal-metric-value">${deal.evEbitda.toFixed(1)}x</div>
+        </div>
+        <div class="deal-metric">
+          <div class="deal-metric-label">Equity</div>
+          <div class="deal-metric-value">$${deal.equity}M</div>
+        </div>
+      </div>
+
+      <div class="deal-prob-row">
+        <span class="deal-prob-label">Probability</span>
+        <div class="deal-prob-bar">
+          <div class="deal-prob-fill" style="width:${deal.probability}%; background:${probColor};"></div>
+        </div>
+        <span class="deal-prob-pct" style="color:${probColor};">${deal.probability}%</span>
+      </div>
+
+      <div class="deal-card-footer">
+        <span class="badge ${srcCls}">${deal.source}</span>
+        <span class="deal-owner">Owner: ${deal.owner}</span>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+})();
+
+/* ── Pipeline Table ── */
+(function() {
+  const tbody = document.getElementById('pipeline-tbody');
+
+  PIPELINE.forEach(deal => {
+    const stageColor = STAGE_COLORS[deal.stage] || '#94A3B8';
+    const srcCls     = sourceCls(deal.source);
+
+    let probColor = '#10B981';
+    if (deal.probability < 50) probColor = '#F59E0B';
+    if (deal.probability < 30) probColor = '#94A3B8';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600;">${deal.name}</td>
+      <td class="muted">${deal.sector}</td>
+      <td><span class="badge ${srcCls}">${deal.source}</span></td>
+      <td>
+        <span class="stage-badge" style="background:${stageColor};">${deal.stage}</span>
+      </td>
+      <td class="num">$${deal.targetEV}M</td>
+      <td class="num">$${deal.equity}M</td>
+      <td class="num">${deal.evEbitda.toFixed(1)}x</td>
+      <td class="num">
+        <div class="tbl-prob">
+          <span style="color:${probColor}; font-weight:600; font-size:0.8rem;">${deal.probability}%</span>
+          <div class="tbl-prob-bar">
+            <div class="tbl-prob-fill" style="width:${deal.probability}%; background:${probColor};"></div>
+          </div>
+        </div>
+      </td>
+      <td class="muted">${deal.owner}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+})();
+</script>
+</body>
+</html>

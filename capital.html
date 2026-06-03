@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Capital Account — Summit Capital Partners III</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── Waterfall list ── */
+    .wf-list { display: flex; flex-direction: column; gap: 14px; }
+    .wf-row  { display: flex; flex-direction: column; gap: 5px; }
+    .wf-row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.8rem;
+    }
+    .wf-row-label  { font-weight: 600; color: var(--text); }
+    .wf-row-right  { display: flex; align-items: baseline; gap: 10px; }
+    .wf-row-amount { font-weight: 700; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+    .wf-row-pct    { font-size: 0.72rem; color: var(--text3); }
+    .progress-bar  { height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+
+    /* net cash-flow cell colours */
+    .pos { color: #059669; font-weight: 600; }
+    .neg { color: #DC2626; font-weight: 600; }
+
+    /* mini prob bar inside table */
+    .mini-bar { height: 4px; background: #E2E8F0; border-radius: 2px; overflow: hidden; margin-top: 3px; }
+    .mini-fill { height: 100%; border-radius: 2px; background: var(--blue); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     TOP NAV
+══════════════════════════════════════ -->
+<nav class="topnav">
+  <a href="index.html" class="nav-brand">
+    <div class="nav-brand-icon">
+      <!-- mountain-peak SVG -->
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 17 L10 4 L18 17" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        <path d="M6 17 L10 10 L14 17" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="rgba(255,255,255,0.35)"/>
+      </svg>
+    </div>
+    <div>
+      <div class="nav-brand-name">Summit Capital</div>
+      <div class="nav-brand-sub">Partners III, L.P.</div>
+    </div>
+  </a>
+
+  <div class="nav-links">
+    <a href="index.html"     class="nav-link">Fund Overview</a>
+    <a href="portfolio.html" class="nav-link">Portfolio</a>
+    <a href="capital.html"   class="nav-link active">Capital Account</a>
+    <a href="pipeline.html"  class="nav-link">Deal Pipeline</a>
+    <a href="risk.html"      class="nav-link">Risk &amp; Concentration</a>
+  </div>
+
+  <div class="nav-right">
+    <span class="nav-badge">Active Fund</span>
+    <span class="nav-date">As of Q2 2026</span>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     PAGE
+══════════════════════════════════════ -->
+<main class="page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-title">Capital Account</h1>
+    <p class="page-subtitle">Cash flow analysis · Fund III · Vintage 2019</p>
+  </div>
+
+  <!-- ── Row 1: KPI Cards ── -->
+  <div class="grid-4">
+
+    <div class="kpi-card accent-blue">
+      <div class="kpi-label">Called Capital</div>
+      <div class="kpi-value" id="kpi-called"></div>
+      <div class="kpi-sub" id="kpi-called-sub"></div>
+    </div>
+
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">Distributions</div>
+      <div class="kpi-value" id="kpi-dist"></div>
+      <div class="kpi-sub" id="kpi-dist-sub"></div>
+    </div>
+
+    <div class="kpi-card accent-orange">
+      <div class="kpi-label">Uncalled Capital</div>
+      <div class="kpi-value" id="kpi-uncalled"></div>
+      <div class="kpi-sub" id="kpi-uncalled-sub"></div>
+    </div>
+
+    <div class="kpi-card accent-purple">
+      <div class="kpi-label">Net IRR</div>
+      <div class="kpi-value" id="kpi-irr"></div>
+      <div class="kpi-sub" id="kpi-irr-sub"></div>
+    </div>
+
+  </div><!-- /grid-4 -->
+
+  <!-- ── Row 2: J-Curve + Quarterly Bars ── -->
+  <div class="grid-2 section-gap">
+
+    <!-- Chart A — J-Curve -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Cumulative Net Cash Flow (J-Curve)</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap" style="height:280px;">
+          <canvas id="chartJCurve"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart B — Quarterly Bars -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Quarterly Capital Flows</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap" style="height:280px;">
+          <canvas id="chartQuarterly"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid-2 -->
+
+  <!-- ── Row 3: Waterfall + NAV & IRR ── -->
+  <div class="grid-2 section-gap">
+
+    <!-- Panel A — Deployment Waterfall -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Capital Deployment Waterfall</span>
+      </div>
+      <div class="card-body">
+        <div class="wf-list" id="waterfall-list"></div>
+      </div>
+    </div>
+
+    <!-- Panel B — NAV & IRR Over Time -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">NAV &amp; IRR Over Time</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap" style="height:260px;">
+          <canvas id="chartNavIrr"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid-2 -->
+
+  <!-- ── Row 4: Quarterly Cash Flow Table ── -->
+  <div class="card section-gap">
+    <div class="card-header">
+      <span class="card-title">Quarterly Cash Flow Detail</span>
+    </div>
+    <div class="card-body-flush">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Quarter</th>
+              <th class="num">Capital Called ($M)</th>
+              <th class="num">Distributions ($M)</th>
+              <th class="num">Net Cash Flow ($M)</th>
+              <th class="num">Cumulative Net ($M)</th>
+            </tr>
+          </thead>
+          <tbody id="cf-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="page-footer">
+    CONFIDENTIAL — For Demonstration Purposes Only &nbsp;·&nbsp; Summit Capital Partners III, L.P.
+  </div>
+
+</main>
+
+<script src="data.js"></script>
+<script>
+/* ── KPI Cards ── */
+document.getElementById('kpi-called').textContent    = fmt(FUND.calledCapital);
+document.getElementById('kpi-called-sub').textContent  = (FUND.calledCapital / FUND.committedCapital * 100).toFixed(1) + '% deployment rate';
+
+document.getElementById('kpi-dist').textContent      = fmt(FUND.distributions);
+document.getElementById('kpi-dist-sub').textContent    = 'DPI: ' + fmtX(FUND.dpi);
+
+document.getElementById('kpi-uncalled').textContent  = fmt(FUND.uncalledCapital);
+document.getElementById('kpi-uncalled-sub').textContent = (FUND.uncalledCapital / FUND.committedCapital * 100).toFixed(1) + '% remaining';
+
+document.getElementById('kpi-irr').textContent       = fmtPct(FUND.irr);
+document.getElementById('kpi-irr-sub').textContent     = 'vs ' + fmtPct(FUND.hurdleRate) + ' hurdle';
+
+/* ── Compute cumulative net from QUARTERLY_CASHFLOWS ── */
+let cumulative = 0;
+const cumNetData = QUARTERLY_CASHFLOWS.map(row => {
+  const net = row.contributions + row.distributions;
+  cumulative += net;
+  return +cumulative.toFixed(2);
+});
+
+const quarters       = QUARTERLY_CASHFLOWS.map(r => r.q);
+const contributions  = QUARTERLY_CASHFLOWS.map(r => r.contributions);
+const distributions  = QUARTERLY_CASHFLOWS.map(r => r.distributions);
+
+/* ── Chart Defaults ── */
+Chart.defaults.font.family = 'Inter, -apple-system, sans-serif';
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#64748B';
+
+/* ── Chart A: J-Curve ── */
+(function() {
+  const ctx = document.getElementById('chartJCurve').getContext('2d');
+
+  // Gradient fill: below-zero red, above-zero green
+  const gradientPositive = ctx.createLinearGradient(0, 0, 0, 280);
+  gradientPositive.addColorStop(0,   'rgba(16,185,129,0.25)');
+  gradientPositive.addColorStop(1,   'rgba(16,185,129,0.02)');
+
+  const gradientNegative = ctx.createLinearGradient(0, 0, 0, 280);
+  gradientNegative.addColorStop(0,   'rgba(239,68,68,0.04)');
+  gradientNegative.addColorStop(1,   'rgba(239,68,68,0.22)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: quarters,
+      datasets: [
+        {
+          label: 'Cumulative Net Cash Flow ($M)',
+          data: cumNetData,
+          borderColor: '#3B82F6',
+          borderWidth: 2.5,
+          pointRadius: 2.5,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#3B82F6',
+          tension: 0.35,
+          fill: {
+            target: { value: 0 },
+            above: gradientPositive,
+            below: gradientNegative,
+          },
+        },
+        // Zero reference line dataset (invisible, just draws y=0)
+        {
+          label: 'Zero Line',
+          data: quarters.map(() => 0),
+          borderColor: 'rgba(100,116,139,0.4)',
+          borderWidth: 1,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          tension: 0,
+          fill: false,
+        }
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            filter: item => item.text !== 'Zero Line',
+            boxWidth: 12,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.dataset.label === 'Zero Line') return null;
+              return ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(1) + 'M';
+            }
+          },
+          filter: item => item.dataset.label !== 'Zero Line',
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 12 },
+        },
+        y: {
+          grid: { color: '#F1F5F9' },
+          ticks: {
+            callback: v => '$' + v + 'M',
+          },
+          title: { display: true, text: 'Cumulative Net ($M)', font: { size: 10 } },
+        },
+      },
+    },
+  });
+})();
+
+/* ── Chart B: Quarterly Capital Flows (grouped bars) ── */
+(function() {
+  const ctx = document.getElementById('chartQuarterly').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: quarters,
+      datasets: [
+        {
+          label: 'Capital Calls',
+          data: contributions,
+          backgroundColor: 'rgba(239,68,68,0.75)',
+          borderColor: '#EF4444',
+          borderWidth: 1,
+          borderRadius: 2,
+        },
+        {
+          label: 'Distributions',
+          data: distributions,
+          backgroundColor: 'rgba(16,185,129,0.75)',
+          borderColor: '#10B981',
+          borderWidth: 1,
+          borderRadius: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(1) + 'M',
+          }
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 12 },
+        },
+        y: {
+          grid: { color: '#F1F5F9' },
+          ticks: { callback: v => '$' + v + 'M' },
+          title: { display: true, text: 'Amount ($M)', font: { size: 10 } },
+        },
+      },
+    },
+  });
+})();
+
+/* ── Panel A: Waterfall List ── */
+(function() {
+  const committed   = FUND.committedCapital;    // 500
+  const called      = FUND.calledCapital;       // 382.5
+  // Net Invested = called - fees/expenses proxy; use provided distributions vs NAV
+  // As per spec: Net Invested $300.0M = 78.4% of called
+  const netInvested = 300.0;
+  const realized    = FUND.distributions;       // 97.4
+  const unrlzNav    = FUND.nav;                 // 528.75
+
+  const rows = [
+    {
+      label:  'Committed Capital',
+      amount: committed,
+      pct:    100,
+      pctLabel: '100%',
+      color:  '#3B82F6',
+      fill:   100,
+    },
+    {
+      label:  'Called Capital',
+      amount: called,
+      pct:    called / committed * 100,
+      pctLabel: (called / committed * 100).toFixed(1) + '% of committed',
+      color:  '#6366F1',
+      fill:   called / committed * 100,
+    },
+    {
+      label:  'Net Invested',
+      amount: netInvested,
+      pct:    netInvested / called * 100,
+      pctLabel: (netInvested / called * 100).toFixed(1) + '% of called',
+      color:  '#8B5CF6',
+      fill:   netInvested / called * 100,
+    },
+    {
+      label:  'Realized Proceeds',
+      amount: realized,
+      pct:    realized / called * 100,
+      pctLabel: (realized / called * 100).toFixed(1) + '% of called',
+      color:  '#10B981',
+      fill:   realized / called * 100,
+    },
+    {
+      label:  'Unrealized NAV',
+      amount: unrlzNav,
+      pct:    unrlzNav / called * 100,
+      pctLabel: (unrlzNav / called * 100).toFixed(0) + '% of called (value creation)',
+      color:  '#F59E0B',
+      // Cap visual at 100 for display; NAV > called signals value creation
+      fill:   Math.min(unrlzNav / called * 100, 100),
+    },
+  ];
+
+  const container = document.getElementById('waterfall-list');
+  rows.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'wf-row';
+    div.innerHTML = `
+      <div class="wf-row-header">
+        <span class="wf-row-label">${row.label}</span>
+        <div class="wf-row-right">
+          <span class="wf-row-amount" style="color:${row.color}">$${row.amount.toFixed(1)}M</span>
+          <span class="wf-row-pct">${row.pctLabel}</span>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${row.fill.toFixed(1)}%; background:${row.color};"></div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+})();
+
+/* ── Chart C: NAV & IRR Over Time (dual axis) ── */
+(function() {
+  // Filter entries with non-null IRR for the IRR dataset; keep all for NAV
+  const histLabels  = FUND_HISTORY.map(r => r.q);
+  const navData     = FUND_HISTORY.map(r => r.nav);
+  const irrData     = FUND_HISTORY.map(r => r.irr); // nulls will be skipped by Chart.js
+
+  const ctx = document.getElementById('chartNavIrr').getContext('2d');
+
+  const gradNav = ctx.createLinearGradient(0, 0, 0, 260);
+  gradNav.addColorStop(0, 'rgba(59,130,246,0.18)');
+  gradNav.addColorStop(1, 'rgba(59,130,246,0.00)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: histLabels,
+      datasets: [
+        {
+          label: 'NAV ($M)',
+          data: navData,
+          borderColor: '#3B82F6',
+          borderWidth: 2.5,
+          backgroundColor: gradNav,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          yAxisID: 'yNav',
+        },
+        {
+          label: 'Net IRR (%)',
+          data: irrData,
+          borderColor: '#10B981',
+          borderWidth: 2,
+          borderDash: [5, 3],
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.35,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          spanGaps: false,
+          yAxisID: 'yIrr',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.dataset.yAxisID === 'yNav')
+                return ' NAV: $' + ctx.parsed.y.toFixed(1) + 'M';
+              if (ctx.parsed.y === null) return null;
+              return ' Net IRR: ' + ctx.parsed.y.toFixed(1) + '%';
+            }
+          }
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 10 },
+        },
+        yNav: {
+          position: 'left',
+          grid: { color: '#F1F5F9' },
+          ticks: { callback: v => '$' + v + 'M' },
+          title: { display: true, text: 'NAV ($M)', font: { size: 10 } },
+        },
+        yIrr: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { callback: v => v + '%' },
+          title: { display: true, text: 'Net IRR (%)', font: { size: 10 } },
+        },
+      },
+    },
+  });
+})();
+
+/* ── Quarterly Cash Flow Table ── */
+(function() {
+  const tbody = document.getElementById('cf-tbody');
+  let runningNet = 0;
+
+  QUARTERLY_CASHFLOWS.forEach(row => {
+    const net = row.contributions + row.distributions;
+    runningNet += net;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.q}</td>
+      <td class="num">${row.contributions !== 0 ? '$' + Math.abs(row.contributions).toFixed(1) + 'M' : '—'}</td>
+      <td class="num">${row.distributions !== 0 ? '$' + row.distributions.toFixed(1) + 'M' : '—'}</td>
+      <td class="num ${net >= 0 ? 'pos' : 'neg'}">
+        ${net >= 0 ? '+' : ''}$${net.toFixed(1)}M
+      </td>
+      <td class="num ${runningNet >= 0 ? 'pos' : 'neg'}">
+        ${runningNet >= 0 ? '+' : ''}$${runningNet.toFixed(1)}M
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+})();
+</script>
+</body>
+</html>
